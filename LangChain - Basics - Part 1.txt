@@ -1,0 +1,173 @@
+#1
+
+%pip install langchain langchain-openai langchain-community python-dotenv -qU
+
+import os
+
+from dotenv import load_dotenv
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_openai import ChatOpenAI
+
+
+
+
+load_dotenv()
+
+openai_api_key = os.getenv("OPENAI_API_KEY")
+
+llm = AzureOpenAI(azure_deployment="gpt-35-turbo-instruct")
+prompt_template = PromptTemplate(
+    input_variables=["topic1", "topic2"],
+    template="Give me a tweet idea on {topic1} and {topic2}",
+)
+
+prompt = prompt_template.format(topic1="AI", topic2="NLP")
+
+
+
+response = llm.invoke(prompt)
+
+print(response.content)
+
+
+
+
+
+
+
+#2
+
+%pip install langchain langchain-openai langchain-community python-dotenv -qU
+
+import os
+
+from dotenv import load_dotenv
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_openai import ChatOpenAI
+
+
+load_dotenv()
+
+openai_api_key = os.getenv("OPENAI_API_KEY")
+prompt = ChatPromptTemplate.from_template("Tell me key achievements of {name} in 6 bulleted points")
+llm = ChatOpenAI(model='gpt-3.5-turbo-0125', temperature=1, openai_api_key=openai_api_key)
+chain = prompt | llm
+
+
+
+response = chain.invoke({"name": "Mahatma Gandhi"})
+
+print(response.content)
+
+
+
+
+
+
+
+
+#3
+
+from langchain_openai import ChatOpenAI
+from langchain.prompts import PromptTemplate, ChatPromptTemplate
+from langchain.chains import LLMChain, SequentialChain
+
+from dotenv import load_dotenv
+
+
+
+
+llm = ChatOpenAI(model='gpt-3.5-turbo-0125', temperature=1, openai_api_key=openai_api_key)
+
+template1 = """
+    write a blog outline given a topic.
+    
+    Topic: {topic}
+"""
+
+prompt_template1 = PromptTemplate(input_variables=["topic"], template=template1)
+
+outline_chain = LLMChain(llm=llm, prompt=prompt_template1, output_key="outline")
+
+template2 = """
+    write a blog article based on the below outline.
+    
+    Outline: {outline}
+"""
+
+prompt_template2 = PromptTemplate(input_variables=["outline"], template=template2)
+article_chain = LLMChain(llm=llm, prompt=prompt_template2, output_key="article")
+
+overall_chain = SequentialChain(
+    chains=[outline_chain, article_chain],
+    input_variables=["topic"],
+    output_variables=["outline", "article"],
+    verbose=True,
+)
+
+
+
+
+
+response = overall_chain({"topic": "Deep Learning"})
+
+print(response)
+
+
+
+
+
+
+#4
+
+BING_SUBSCRIPTION_KEY=xxxx
+BING_SEARCH_URL=https://api.bing.microsoft.com/v7.0/search
+
+
+from dotenv import load_dotenv
+from langchain_openai import AzureOpenAI
+from langchain.chains.llm_math.base import LLMMathChain
+from langchain_community.utilities import BingSearchAPIWrapper
+from langchain.agents import Tool, initialize_agent, tool
+
+load_dotenv
+
+llm = ChatOpenAI(model='gpt-3.5-turbo-0125', temperature=1, openai_api_key=openai_api_key)
+
+llm_math = LLMMathChain.from_llm(llm)
+math_tool = Tool(
+    name="Calculator",
+    func=llm_math.run,
+    description="Useful tool when you need to answer questions about math",
+)
+
+
+
+@tool("BingSearch")
+def search(search_query: str):
+    """
+    useful to search for any information and
+    useful for when you need to search the internet for any kinds of information
+    """
+    search = BingSearchAPIWrapper()
+    return search.run(search_query)
+
+
+tools = [search, math_tool]
+
+agent = initialize_agent(
+    agent="zero-shot-react-description",
+    tools=tools,
+    llm=llm,
+    verbose=True,
+    max_iterations=10,
+)
+
+agent.handle_parsing_errors = True
+
+
+
+response = agent("What's the root over 25? and let me know capital of India?")
+
+print(response)
+
